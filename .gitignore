@@ -35,3 +35,25 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Lock files (consumers generate their own)
+.terraform.lock.hcl
+
+# Secrets / runtime artifacts
+kubeconfig
+kubeconfig.tmp
+*.pem
+*.key
+
+# Allow example tfvars
+!*.tfvars.example
+
+# OS
+.DS_Store
+
+# Test results
+test-results.txt
+
+# Claude Code local settings
+.claude/
+CLAUDE.md

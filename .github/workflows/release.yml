@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version bump
+        id: bump
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if echo "$PR_LABELS" | grep -qw "major"; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$PR_LABELS" | grep -qw "minor"; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif echo "$PR_LABELS" | grep -qw "patch"; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          elif echo "$PR_TITLE" | grep -qiE '^feat'; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif echo "$PR_TITLE" | grep -qiE '^fix'; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Get latest tag
+        id: latest
+        run: |
+          tag=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          if [ -z "$tag" ]; then
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Calculate next version
+        id: next
+        env:
+          CURRENT: ${{ steps.latest.outputs.version }}
+          BUMP: ${{ steps.bump.outputs.type }}
+        run: |
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+          case "$BUMP" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          echo "version=v${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.next.outputs.version }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --notes "## What's Changed
+
+          - ${PR_TITLE} (#${PR_NUMBER})
+
+          **Full Changelog**: ${PR_URL}" \
+            --target main

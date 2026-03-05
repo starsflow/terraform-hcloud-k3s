@@ -1,0 +1,88 @@
+#cloud-config
+%{ if enable_nat_gateway ~}
+
+bootcmd:
+  - sysctl -w net.ipv4.ip_forward=1
+  - PUB_IFACE=$(ip -o route get 1.1.1.1 | awk '{print $5; exit}') && iptables -t nat -C POSTROUTING -s ${subnet_cidr} ! -d ${subnet_cidr} -o "$PUB_IFACE" -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s ${subnet_cidr} ! -d ${subnet_cidr} -o "$PUB_IFACE" -j MASQUERADE
+%{ endif ~}
+%{ if !is_nat_client ~}
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - fail2ban
+  - curl
+  - wget
+  - jq
+  - open-iscsi
+  - nfs-common
+  - wireguard
+  - unattended-upgrades
+%{ endif ~}
+
+write_files:
+  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      port = ${ssh_port}
+      maxretry = 5
+      bantime = 3600
+
+  - path: /etc/sysctl.d/99-k3s.conf
+    content: |
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      fs.inotify.max_user_instances = 8192
+      fs.inotify.max_user_watches = 524288
+
+  - path: /etc/systemd/resolved.conf.d/dns.conf
+    content: |
+      [Resolve]
+      DNS=${join(" ", dns_servers)}
+      FallbackDNS=9.9.9.9
+      DNSStubListener=no
+
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+          "$${distro_id}:$${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "false";
+
+runcmd:
+%{ if is_nat_client ~}
+  - |
+    IFACE=$(ip -o addr show | awk '/${subnet_prefix}\./ {print $2; exit}')
+    ip route replace default via ${gateway_ip} dev "$IFACE"
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y fail2ban curl wget jq open-iscsi nfs-common wireguard unattended-upgrades
+  - |
+    IFACE=$(ip -o addr show | awk '/${subnet_prefix}\./ {print $2; exit}')
+    cat > /etc/networkd-dispatcher/routable.d/50-default-route <<SCRIPT
+    #!/bin/bash
+    if [ "\$IFACE" = "$IFACE" ]; then
+      ip route replace default via ${gateway_ip} dev $IFACE
+    fi
+    SCRIPT
+    chmod 755 /etc/networkd-dispatcher/routable.d/50-default-route
+%{ endif ~}
+  - systemctl enable --now fail2ban
+  - sysctl --system
+  - systemctl restart systemd-resolved
+  - systemctl enable --now iscsid
+  - systemctl enable --now unattended-upgrades
+%{ if enable_nat_gateway ~}
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y netfilter-persistent iptables-persistent || DEBIAN_FRONTEND=noninteractive apt-get install -y netfilter-persistent
+  - netfilter-persistent save || true
+%{ endif ~}

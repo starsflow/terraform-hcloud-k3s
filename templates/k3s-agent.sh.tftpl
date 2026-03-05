@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Waiting for cloud-init to finish..."
+cloud-init status --wait || true
+
+%{ if is_nat_client ~}
+echo "Ensuring default route via NAT gateway..."
+IFACE=$(ip -o addr show | awk '/${subnet_prefix}\./ {print $2; exit}')
+ip route replace default via ${gateway_ip} dev "$IFACE" || true
+%{ endif ~}
+
+K3S_TOKEN=$(cat /root/.k3s-token)
+
+echo "Installing k3s agent on ${node_name}..."
+curl -sfL https://get.k3s.io | \
+  INSTALL_K3S_VERSION="${k3s_version}" \
+  K3S_TOKEN="$K3S_TOKEN" \
+  K3S_URL="https://${server_ip}:6443" \
+  sh -s - agent \
+    --node-name="${node_name}" \
+    --node-ip="${private_ip}" \
+    --kubelet-arg="cloud-provider=external"
+
+rm -f /root/.k3s-token
+echo "k3s agent install complete on ${node_name}"

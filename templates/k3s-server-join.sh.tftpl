@@ -1,0 +1,42 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Waiting for cloud-init to finish..."
+cloud-init status --wait || true
+
+K3S_TOKEN=$(cat /root/.k3s-token)
+
+echo "Installing k3s server (join) on ${node_name}..."
+curl -sfL https://get.k3s.io | \
+  INSTALL_K3S_VERSION="${k3s_version}" \
+  K3S_TOKEN="$K3S_TOKEN" \
+  sh -s - server \
+    --server="https://${server_ip}:6443" \
+    --node-name="${node_name}" \
+    --tls-san="${tls_san}" \
+    --advertise-address="${private_ip}" \
+    --node-ip="${private_ip}" \
+%{ if disable_builtin_cni ~}
+    --flannel-backend=none \
+    --disable-network-policy \
+%{ endif ~}
+    --disable=servicelb \
+    --disable=traefik \
+%{ if !enable_local_storage ~}
+    --disable=local-storage \
+%{ endif ~}
+    --disable-cloud-controller \
+%{ if enable_embedded_registry ~}
+    --embedded-registry \
+%{ endif ~}
+    --kubelet-arg="cloud-provider=external" \
+    --write-kubeconfig-mode=600
+
+rm -f /root/.k3s-token
+
+echo "Waiting for this node to appear in cluster..."
+until kubectl get node "${node_name}" --request-timeout=5s &>/dev/null; do
+  sleep 3
+done
+
+echo "k3s server join complete on ${node_name}"

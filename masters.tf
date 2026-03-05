@@ -85,7 +85,7 @@ resource "hcloud_server" "master_init" {
       k3s_version              = var.k3s_version
       cluster_name             = var.cluster_name
       tls_san                  = local.tls_san_lb != "" ? local.tls_san_lb : self.ipv4_address
-      private_ip               = self.network[*].ip[0]
+      private_ip               = one(self.network).ip
       node_name                = self.name
       enable_local_storage     = var.enable_local_storage
       disable_builtin_cni      = var.disable_builtin_cni
@@ -132,7 +132,7 @@ resource "hcloud_server" "masters" {
     type        = "ssh"
     user        = "root"
     private_key = local.ssh_private_key
-    host        = var.master_public_ip ? self.ipv4_address : self.network[*].ip[0]
+    host        = var.master_public_ip ? self.ipv4_address : one(self.network).ip
     port        = var.ssh_port
     timeout     = "5m"
 
@@ -152,8 +152,8 @@ resource "hcloud_server" "masters" {
       k3s_version              = var.k3s_version
       cluster_name             = var.cluster_name
       tls_san                  = local.tls_san_lb != "" ? local.tls_san_lb : hcloud_server.master_init.ipv4_address
-      server_ip                = hcloud_server.master_init.network[*].ip[0]
-      private_ip               = self.network[*].ip[0]
+      server_ip                = one(hcloud_server.master_init.network).ip
+      private_ip               = one(self.network).ip
       node_name                = self.name
       enable_local_storage     = var.enable_local_storage
       disable_builtin_cni      = var.disable_builtin_cni

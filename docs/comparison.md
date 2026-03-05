@@ -25,12 +25,12 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 
 | Feature | **starsflow/k3s** | **kube-hetzner** | **hetzner-k3s** | **identiops/k3s** |
 |---|---|---|---|---|
-| Private workers | Yes (default) | Yes | No | Yes (default) |
-| Private masters | Yes (opt-in) | Yes | No | Yes (all nodes private) |
-| NAT gateway | master-00 (auto) | Dedicated NAT router | N/A | Gateway node |
+| Private workers | Yes (default) | Yes | Yes (private network) | Yes (default) |
+| Private masters | Yes (opt-in) | Yes | Yes (private network) | Yes (all nodes private) |
+| NAT gateway | master-00 (auto) | Dedicated NAT router | Not documented | Gateway node |
 | API load balancer | Yes (opt-in) | Yes | Via CCM | No (gateway proxy) |
 | Ingress load balancer | Yes (pre-created for CCM) | Yes (auto-configured) | Via CCM | No |
-| Firewall | Yes (explicit CIDRs, split base+ingress) | Yes (SSH/API source restrictions) | Via config | Yes (internal + fail2ban) |
+| Firewall | Yes (explicit CIDRs, split base+ingress) | Yes (SSH/API source restrictions) | Yes (Hetzner firewall integration) | Yes (internal + fail2ban) |
 | WireGuard encryption | No | Yes (opt-in) | No | No |
 | IPv6 / dual-stack | IPv6 on public nodes | Full dual-stack | Not documented | No |
 | Custom network CIDR | Yes | Yes (per nodepool) | Not documented | Yes |
@@ -51,8 +51,8 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 
 | Feature | **starsflow/k3s** | **kube-hetzner** | **hetzner-k3s** | **identiops/k3s** |
 |---|---|---|---|---|
-| CNI | Flannel (default) or BYO | Flannel, Calico, or Cilium | Flannel or Cilium | Cilium only |
-| BYO CNI | Yes (`disable_builtin_cni`) | No (must pick from built-in) | No (must pick from built-in) | No (Cilium only) |
+| CNI | Flannel (default) or BYO | Flannel, Calico, or Cilium | Flannel or Cilium | Cilium (default) |
+| BYO CNI | Yes (`disable_builtin_cni`) | No (must pick from built-in) | No (must pick from built-in) | No |
 | Ingress controller | None (BYO) | Traefik, Nginx, or HAProxy | Traefik (optional) | None (BYO) |
 | Hetzner CCM | Yes (auto-installed) | Yes | Yes | Yes |
 | Hetzner CSI | Yes (auto-installed) | Yes | Yes | Yes |
@@ -146,25 +146,25 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 
 **Approach**: Single binary CLI tool. No Terraform, Packer, or Ansible required. Configure a YAML file, run `hetzner-k3s create`, get a cluster.
 
-**Architecture**: Communicates directly with the Hetzner API. Provisions nodes, installs k3s, configures networking. Uses Hetzner CCM for load balancers. No private networking model -- nodes have public IPs.
+**Architecture**: Communicates directly with the Hetzner API. Provisions nodes, installs k3s, configures networking over Hetzner's private network by default. Uses Hetzner CCM for load balancers. Supports multi-region deployments across Hetzner locations.
 
 **Strengths**:
 - Fastest cluster creation (~2-3 min for 3 nodes, ~11 min for 500 nodes)
 - Simplest setup: one binary, one YAML file
 - No external dependencies (no Terraform, Packer, Ansible)
+- Private networking by default (Hetzner private network)
+- Hetzner firewall integration
 - Built-in cluster autoscaler
 - ARM/CAX support
+- Multi-region deployments
 - Built-in k3s auto-upgrades via SUC
 - Credentials stay local (token never uploaded anywhere)
 
 **Limitations**:
-- No private networking -- all nodes have public IPs
 - Not composable with other IaC (not Terraform, can't mix with other modules)
-- Written in Crystal -- small contributor pool, harder to extend
-- No firewalls configuration documented
 - No placement groups documented
-- No delete protection
-- No etcd backups
+- No delete protection documented
+- No etcd backups documented
 - State is not in Terraform -- no plan/apply workflow, no drift detection
 
 **Best for**: Developers who want a cluster fast and don't use Terraform. Great for personal projects, experiments, and situations where speed matters more than IaC composability.
@@ -189,7 +189,7 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 - K3s hardening guide applied (kernel parameters, audit logging)
 
 **Limitations**:
-- Cilium only -- no BYO CNI, no Flannel option
+- Cilium-focused -- no documented BYO CNI or Flannel option
 - No API load balancer -- kubectl access is via port-forwarding through the gateway
 - No ARM/CAX support
 - No cluster autoscaler (planned)
@@ -214,7 +214,7 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 | Fastest cluster creation, no Terraform | **hetzner-k3s** (CLI) |
 | ARM/CAX cost optimization | **kube-hetzner** or **hetzner-k3s** |
 | Zero public IPs on cluster nodes | **identiops/k3s** (gateway) |
-| etcd S3 backups built in | **identiops/k3s** |
+| etcd S3 backups built in | **kube-hetzner** or **identiops/k3s** |
 | BYO CNI (Cilium, Calico, anything) | **starsflow/k3s** |
 | WireGuard pod traffic encryption | **kube-hetzner** |
 

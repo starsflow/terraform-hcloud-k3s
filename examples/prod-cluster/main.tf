@@ -41,15 +41,15 @@ module "k3s" {
   enable_delete_protection = false
 
   masters = {
-    instance_type  = "cx23"   # cx32 for real prod
+    instance_type  = "cx23" # cx32 for real prod
     instance_count = 3
     location       = "nbg1"
   }
 
   worker_pools = {
     general = {
-      instance_type  = "cx23"  # cx32 for real prod
-      instance_count = 1       # 3 for real prod
+      instance_type  = "cx23" # cx32 for real prod
+      instance_count = 1      # 3 for real prod
       location       = "nbg1"
       # public_ip = false  # default — private workers, NAT via master-00
     }

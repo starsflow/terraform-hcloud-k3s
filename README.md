@@ -233,7 +233,6 @@ module "k3s" {
 | `allowed_api_cidrs` | CIDRs allowed to reach the K8s API | `list(string)` | -- | yes |
 | `stage` | Environment stage label | `string` | `"prod"` | no |
 | `k3s_version` | K3s version to install | `string` | `"v1.35.1+k3s1"` | no |
-| `k3s_channel` | K3s release channel | `string` | `"stable"` | no |
 | `ssh_port` | SSH port | `number` | `22` | no |
 | `network_cidr` | CIDR for the private network | `string` | `"10.0.0.0/8"` | no |
 | `subnet_cidr` | CIDR for the subnet | `string` | `"10.0.1.0/24"` | no |

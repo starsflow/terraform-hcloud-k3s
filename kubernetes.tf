@@ -79,8 +79,8 @@ data "external" "kubeconfig_content" {
 ## Hetzner Cloud secret for CCM/CSI
 ## ──────────────────────────────────────────────
 resource "local_sensitive_file" "hcloud_secret_manifest" {
-  count           = (var.install_ccm || var.install_csi) ? 1 : 0
-  content         = templatefile("${path.module}/templates/hcloud-secret.yaml.tftpl", {
+  count = (var.install_ccm || var.install_csi) ? 1 : 0
+  content = templatefile("${path.module}/templates/hcloud-secret.yaml.tftpl", {
     hcloud_token = var.hcloud_token
     network_name = hcloud_network.cluster.name
   })

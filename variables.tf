@@ -30,12 +30,6 @@ variable "k3s_version" {
   default     = "v1.35.1+k3s1"
 }
 
-variable "k3s_channel" {
-  description = "K3s release channel (stable, latest, testing)"
-  type        = string
-  default     = "stable"
-}
-
 ## ──────────────────────────────────────────────
 ## SSH
 ## ──────────────────────────────────────────────

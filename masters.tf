@@ -82,13 +82,13 @@ resource "hcloud_server" "master_init" {
 
   provisioner "remote-exec" {
     inline = [templatefile("${path.module}/templates/k3s-server-init.sh.tftpl", {
-      k3s_version          = var.k3s_version
-      cluster_name         = var.cluster_name
-      tls_san              = local.tls_san_lb != "" ? local.tls_san_lb : self.ipv4_address
-      private_ip           = self.network.*.ip[0]
-      node_name            = self.name
-      enable_local_storage    = var.enable_local_storage
-      disable_builtin_cni     = var.disable_builtin_cni
+      k3s_version              = var.k3s_version
+      cluster_name             = var.cluster_name
+      tls_san                  = local.tls_san_lb != "" ? local.tls_san_lb : self.ipv4_address
+      private_ip               = self.network[*].ip[0]
+      node_name                = self.name
+      enable_local_storage     = var.enable_local_storage
+      disable_builtin_cni      = var.disable_builtin_cni
       enable_embedded_registry = var.enable_embedded_registry
     })]
   }
@@ -132,7 +132,7 @@ resource "hcloud_server" "masters" {
     type        = "ssh"
     user        = "root"
     private_key = local.ssh_private_key
-    host        = var.master_public_ip ? self.ipv4_address : self.network.*.ip[0]
+    host        = var.master_public_ip ? self.ipv4_address : self.network[*].ip[0]
     port        = var.ssh_port
     timeout     = "5m"
 
@@ -149,14 +149,14 @@ resource "hcloud_server" "masters" {
 
   provisioner "remote-exec" {
     inline = [templatefile("${path.module}/templates/k3s-server-join.sh.tftpl", {
-      k3s_version          = var.k3s_version
-      cluster_name         = var.cluster_name
-      tls_san              = local.tls_san_lb != "" ? local.tls_san_lb : hcloud_server.master_init.ipv4_address
-      server_ip            = hcloud_server.master_init.network.*.ip[0]
-      private_ip           = self.network.*.ip[0]
-      node_name            = self.name
-      enable_local_storage    = var.enable_local_storage
-      disable_builtin_cni     = var.disable_builtin_cni
+      k3s_version              = var.k3s_version
+      cluster_name             = var.cluster_name
+      tls_san                  = local.tls_san_lb != "" ? local.tls_san_lb : hcloud_server.master_init.ipv4_address
+      server_ip                = hcloud_server.master_init.network[*].ip[0]
+      private_ip               = self.network[*].ip[0]
+      node_name                = self.name
+      enable_local_storage     = var.enable_local_storage
+      disable_builtin_cni      = var.disable_builtin_cni
       enable_embedded_registry = var.enable_embedded_registry
     })]
   }

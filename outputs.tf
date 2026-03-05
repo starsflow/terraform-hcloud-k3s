@@ -19,7 +19,7 @@ output "master_ips" {
   value = merge(
     { (local.master_init_key) = hcloud_server.master_init.ipv4_address },
     { for k, v in hcloud_server.masters : k =>
-      var.master_public_ip ? v.ipv4_address : v.network.*.ip[0]
+      var.master_public_ip ? v.ipv4_address : v.network[*].ip[0]
     }
   )
 }
@@ -27,8 +27,8 @@ output "master_ips" {
 output "master_private_ips" {
   description = "Map of master name to private IP"
   value = merge(
-    { (local.master_init_key) = hcloud_server.master_init.network.*.ip[0] },
-    { for k, v in hcloud_server.masters : k => v.network.*.ip[0] }
+    { (local.master_init_key) = hcloud_server.master_init.network[*].ip[0] },
+    { for k, v in hcloud_server.masters : k => v.network[*].ip[0] }
   )
 }
 
@@ -36,13 +36,13 @@ output "worker_ips" {
   description = "Map of worker name to public IPv4 (or private IP if public_ip is false for that pool)"
   value = {
     for k, v in hcloud_server.workers : k =>
-    local.worker_map[k].public_ip ? v.ipv4_address : v.network.*.ip[0]
+    local.worker_map[k].public_ip ? v.ipv4_address : v.network[*].ip[0]
   }
 }
 
 output "worker_private_ips" {
   description = "Map of worker name to private IP"
-  value       = { for k, v in hcloud_server.workers : k => v.network.*.ip[0] }
+  value       = { for k, v in hcloud_server.workers : k => v.network[*].ip[0] }
 }
 
 output "load_balancer_ip" {

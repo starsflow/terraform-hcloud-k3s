@@ -45,7 +45,7 @@ resource "hcloud_server" "workers" {
     type        = "ssh"
     user        = "root"
     private_key = local.ssh_private_key
-    host        = each.value.public_ip ? self.ipv4_address : self.network[*].ip[0]
+    host        = each.value.public_ip ? self.ipv4_address : one(self.network).ip
     port        = var.ssh_port
     timeout     = "5m"
 
@@ -63,9 +63,9 @@ resource "hcloud_server" "workers" {
   provisioner "remote-exec" {
     inline = [templatefile("${path.module}/templates/k3s-agent.sh.tftpl", {
       k3s_version   = var.k3s_version
-      server_ip     = hcloud_server.master_init.network[*].ip[0]
+      server_ip     = one(hcloud_server.master_init.network).ip
       node_name     = self.name
-      private_ip    = self.network[*].ip[0]
+      private_ip    = one(self.network).ip
       is_nat_client = !each.value.public_ip
       gateway_ip    = local.hetzner_gateway_ip
       subnet_prefix = local.subnet_prefix

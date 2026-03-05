@@ -21,7 +21,7 @@ resource "hcloud_network_route" "nat_gateway" {
   count       = local.any_worker_private ? 1 : 0
   network_id  = hcloud_network.cluster.id
   destination = "0.0.0.0/0"
-  gateway     = hcloud_server.master_init.network[*].ip[0]
+  gateway     = one(hcloud_server.master_init.network).ip
 
   depends_on = [hcloud_network_subnet.nodes]
 }

@@ -44,7 +44,7 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 | Placement groups | Yes (per pool) | Yes | Not documented | Yes |
 | Multi-arch (ARM) | No | Yes (CAX instances) | Yes (CAX instances) | No |
 | Multi-region | No | Yes (super-HA) | Yes | Yes |
-| Delete protection | Yes (opt-in) | No | Not documented | Yes (default) |
+| Delete protection | Yes (opt-in) | Yes (granular: FIP, LB, volume) | Not documented | Yes (default) |
 | Graceful drain on destroy | Yes (automatic) | Yes (manual documented) | Not documented | Yes (manual documented) |
 
 ### Kubernetes Components
@@ -66,7 +66,7 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 |---|---|---|---|---|
 | Auto OS upgrades | No (BYO) | Yes (MicroOS transactional + kured) | Not documented | Yes (kured) |
 | Auto k3s upgrades | No (BYO) | Yes (SUC) | Yes (SUC) | Yes (SUC) |
-| etcd S3 backups | No | Not documented | No | Yes |
+| etcd S3 backups | No | Yes | No | Yes |
 | Cluster autoscaler | No (BYO) | Yes (built-in) | Yes (built-in) | Planned |
 | cert-manager | No (BYO) | Yes (via Kustomization) | No | No |
 | Metrics server | No (BYO) | Not documented | Not documented | Yes |
@@ -128,6 +128,8 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 - Multi-region (super-HA) deployment
 - Large community (~3,700 stars)
 - Dual-stack IPv4/IPv6
+- etcd S3 backup and restore built in
+- Granular delete protection (floating IPs, LBs, volumes)
 
 **Limitations**:
 - ~190 variables -- significant learning curve
@@ -135,7 +137,6 @@ There are several projects for running k3s on Hetzner Cloud. They differ in scop
 - Everything in one Terraform state: upgrading ingress means re-running Terraform
 - MicroOS is unfamiliar to most teams (not Ubuntu/Debian)
 - Swapping CNI or ingress requires modifying the module configuration
-- No delete protection
 
 **Best for**: Teams that want a fully managed platform from a single tool and don't plan to layer their own platform tooling on top. Good if you want batteries-included and are OK with the complexity.
 
